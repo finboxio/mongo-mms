@@ -31,21 +31,21 @@ else
   exit 1
 fi
 
-# # Update changelog
-# git changelog -t $VERSION
+# Update changelog
+git changelog -t $VERSION
 
-# # Attempt to prevent race where .git/index.lock
-# # isn't cleared immediately
-# sleep 0.5
-# git add History.md
+# Attempt to prevent race where .git/index.lock
+# isn't cleared immediately
+sleep 0.5
+git add History.md
 
-# # Commit and tag release
-# git commit -am "${VERSION}"
-# git tag -a v$VERSION -m "Release $VERSION"
+# Commit and tag release
+git commit -am "${VERSION}"
+git tag -a v$VERSION -m "Release $VERSION"
 
-# # Push release
-# git push
-# git push --tags
+# Push release
+git push
+git push --tags
 
 # Create GitHub release
 CURRENT_BRANCH=$(git symbolic-ref HEAD 2>/dev/null | cut -d"/" -f 3)
