@@ -1,0 +1,94 @@
+#!/bin/bash
+
+set -e
+
+GITHUB_USER="finboxio"
+GITHUB_REPO="mongo-mms"
+
+# Get the new package version
+VERSION=$(cat Dockerfile | grep "ENV MMS_VERSION" | awk '{ print $3 }')
+
+echo "Verifying that local master has all remote work..."
+
+git branch | grep "* master" &> /dev/null || \
+  { echo "Must be on master branch! Aborting." && exit 1; }
+
+git rev-parse @{u} &> /dev/null || \
+  { echo "Upstream is not set for branch! Aborting." && exit 1; }
+
+git remote -v update &> /dev/null
+LOCAL=$(git rev-parse @)
+REMOTE=$(git rev-parse @{u})
+BASE=$(git merge-base @ @{u})
+
+if [[ "$LOCAL" = "" || "$REMOTE" = "" || "$BASE" = "" ]]; then
+  echo "Could not determine repository status! Aborting."
+  exit 1
+fi
+
+if [[ $LOCAL = $REMOTE || $REMOTE = $BASE ]]; then
+  echo "Local master is up-to-date"
+else
+  echo "Local repository is out of sync with remote! Aborting."
+  exit 1
+fi
+
+# Update changelog
+git changelog -t $VERSION
+
+# Attempt to prevent race where .git/index.lock
+# isn't cleared immediately
+sleep 0.5
+git add History.md
+
+# Commit and tag release
+git commit -am "${VERSION}"
+git tag -a v$VERSION -m "Release $VERSION"
+
+# Push release
+git push
+git push --tags
+
+# Create GitHub release
+CURRENT_BRANCH=$(git symbolic-ref HEAD 2>/dev/null | cut -d"/" -f 3)
+CURRENT_VERSION=$VERSION
+PUBLISH_VERSION=${1:-$CURRENT_VERSION}
+
+git checkout tags/v$PUBLISH_VERSION &> /dev/null || {
+  echo "Failed to checkout version tag!"
+  exit 1
+}
+
+git status | grep "nothing to commit, working directory clean" || {
+  echo "Working directory is not clean!"
+  git checkout $CURRENT_BRANCH &> /dev/null
+  exit 1
+}
+
+if hub release --include-drafts | grep -q "^v${PUBLISH_VERSION}\$"; then
+  echo "Release already exists!"
+  git checkout $CURRENT_BRANCH &> /dev/null
+  open https://github.com/${GITHUB_USER}/${GITHUB_REPO}/releases
+  exit 1
+else
+  echo "Creating release draft for v${PUBLISH_VERSION}"
+
+  RELEASE_NOTES=$(
+    echo "Release ${PUBLISH_VERSION}"
+    echo
+    echo "## Changes"
+    echo
+
+    ./scripts/release-notes
+  )
+
+  RELEASE_URL=$(echo "$RELEASE_NOTES" | hub release create -F - "v$PUBLISH_VERSION")
+
+  sleep 1
+  open $RELEASE_URL
+
+  git checkout $CURRENT_BRANCH &> /dev/null
+fi
+
+
+
