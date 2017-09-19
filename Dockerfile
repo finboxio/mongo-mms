@@ -1,6 +1,6 @@
 FROM alpine:edge
 
-ENV MMS_VERSION 6.0.0.381-1
+ENV MMS_VERSION 5.2.0.331-1
 
 RUN adduser -S mms
 
