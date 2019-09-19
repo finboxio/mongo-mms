@@ -25,16 +25,16 @@ set_config() {
   key="$1"
   value="$2"
   sed_escaped_value="$(echo "$value" | sed 's/[\/&]/\\&/g')"
-  sed -ri "s/^($key)[ ]*=.*$/\1 = $sed_escaped_value/" monitoring-agent.config
+  sed -ri "s/^($key)[ ]*=.*$/\1 = $sed_escaped_value/" local.config
 }
 
+set_config mmsGroupId "$MMS_GROUP_ID"
 set_config mmsApiKey "$MMS_API_KEY"
 set_config mmsBaseUrl "$MMS_SERVER"
 set_config enableMunin "$MMS_MUNIN"
-set_config mmsGroupId "$MMS_GROUP_ID"
 set_config sslRequireValidServerCertificates "$MMS_CHECK_SSL_CERTS"
 
-chown mms monitoring-agent.config
-chown mms mongodb-mms-monitoring-agent
+chown mms local.config
+chown mms mongodb-mms-automation-agent
 
 su-exec mms "$@"
