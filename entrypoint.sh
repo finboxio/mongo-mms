@@ -34,7 +34,10 @@ set_config mmsBaseUrl "$MMS_SERVER"
 set_config enableMunin "$MMS_MUNIN"
 set_config sslRequireValidServerCertificates "$MMS_CHECK_SSL_CERTS"
 
+mkdir -p /var/log/mongodb-mms-automation
+
 chown mms local.config
 chown mms mongodb-mms-automation-agent
+chown -R mms /var/log/mongodb-mms-automation
 
 su-exec mms "$@"
